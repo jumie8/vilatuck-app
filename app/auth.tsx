@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../lib/supabase";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -9,13 +10,15 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function submit() {
+  async function submit() {
+    const cleanEmail = email.trim().toLowerCase();
     if (mode === "signup" && !name.trim()) {
       Alert.alert("Name required", "Enter the name you want to use on VILATUCK.");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
+    if (!cleanEmail || !cleanEmail.includes("@")) {
       Alert.alert("Check your email", "Enter a valid email address.");
       return;
     }
@@ -23,7 +26,34 @@ export default function AuthScreen() {
       Alert.alert("Password too short", "Use at least 8 characters.");
       return;
     }
-    Alert.alert("Account setup not connected yet", "Your details have not been sent or saved. VILATUCK needs its secure Supabase authentication connection before sign-in and account creation can work.");
+
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: { data: { display_name: name.trim() } },
+        });
+        if (error) throw error;
+        if (data.session) {
+          Alert.alert("Welcome to VILATUCK!", "Your account has been created.");
+          router.replace("/profile");
+        } else {
+          Alert.alert("Check your email", "VILATUCK sent a confirmation link. Confirm your email, then sign in.");
+          setMode("login");
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) throw error;
+        Alert.alert("Signed in", "Welcome back to VILATUCK.");
+        router.replace("/profile");
+      }
+    } catch (error) {
+      Alert.alert("Could not continue", error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -43,9 +73,11 @@ export default function AuthScreen() {
       <Text style={s.label}>Email address</Text>
       <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#777284" style={s.input} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
       <Text style={s.label}>Password</Text>
-      <TextInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" placeholderTextColor="#777284" style={s.input} secureTextEntry />
-      <Pressable onPress={submit} style={s.button}><Text style={s.buttonText}>{mode === "signup" ? "Create account" : "Sign in"}</Text></Pressable>
-      <View style={s.notice}><Ionicons name="shield-checkmark-outline" size={20} color="#D7C9FF"/><Text style={s.noticeText}>Secure account creation is not active yet. This preview does not transmit or store your password. Supabase authentication must be connected before real accounts can be created.</Text></View>
+      <TextInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" placeholderTextColor="#777284" style={s.input} secureTextEntry autoCapitalize="none" />
+      <Pressable onPress={submit} disabled={loading} style={[s.button, loading && {opacity:0.65}]}>
+        {loading ? <ActivityIndicator color="white" /> : <Text style={s.buttonText}>{mode === "signup" ? "Create account" : "Sign in"}</Text>}
+      </Pressable>
+      <View style={s.notice}><Ionicons name="shield-checkmark-outline" size={20} color="#D7C9FF"/><Text style={s.noticeText}>Your account is handled by VILATUCK's Supabase authentication service. Never share your password with anyone.</Text></View>
     </ScrollView>
   );
 }
@@ -64,7 +96,7 @@ const s = StyleSheet.create({
   selectedText:{color:"white"},
   label:{color:"white",fontSize:13,fontWeight:"700",marginTop:20,marginBottom:8},
   input:{backgroundColor:"#171422",borderColor:"#302A3D",borderWidth:1,borderRadius:12,padding:15,color:"white",fontSize:14},
-  button:{backgroundColor:"#7047FF",padding:16,borderRadius:13,alignItems:"center",marginTop:28},
+  button:{backgroundColor:"#7047FF",padding:16,borderRadius:13,alignItems:"center",marginTop:28,minHeight:52,justifyContent:"center"},
   buttonText:{color:"white",fontSize:15,fontWeight:"900"},
   notice:{flexDirection:"row",gap:10,backgroundColor:"#211D2D",borderRadius:13,padding:14,marginTop:22},
   noticeText:{color:"#D7CFFF",fontSize:12,lineHeight:19,flex:1}
