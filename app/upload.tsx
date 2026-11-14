@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, TextInput, Alert, ScrollView, Activi
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { supabase } from "../lib/supabase";
 
 export default function UploadScreen() {
@@ -12,6 +13,7 @@ export default function UploadScreen() {
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState("video/mp4");
   const [loading, setLoading] = useState(false);
+  const previewPlayer = useVideoPlayer(videoUri, (player) => { player.loop = true; });
 
   function useSelectedVideo(asset: ImagePicker.ImagePickerAsset) {
     if (asset.fileSize && asset.fileSize > 250 * 1024 * 1024) {
@@ -128,6 +130,7 @@ export default function UploadScreen() {
         </View>
         {videoUri ? <Pressable onPress={() => { setVideoUri(null); setVideoName(""); }}><Text style={s.removeText}>Remove selected video</Text></Pressable> : null}
       </View>
+      {videoUri ? <View style={s.previewWrap}><Text style={s.label}>Video preview</Text><VideoView player={previewPlayer} style={s.preview} contentFit="contain" nativeControls allowsFullscreen /></View> : null}
       <Text style={s.hint}>Maximum video length: 3 minutes. Maximum file size: 250 MB.</Text>
       <Text style={s.label}>Caption</Text>
       <TextInput value={caption} onChangeText={setCaption} placeholder="Write a caption and add #hashtags..." placeholderTextColor="#777284" multiline style={s.input} />
@@ -156,6 +159,8 @@ const s = StyleSheet.create({
   secondaryButton:{flexDirection:"row",alignItems:"center",gap:7,backgroundColor:"#383044",paddingHorizontal:16,paddingVertical:12,borderRadius:12},
   chooseText:{color:"white",fontWeight:"800"},
   removeText:{color:"#F0A5B5",fontSize:12,fontWeight:"700",marginTop:18},
+  previewWrap:{marginTop:18},
+  preview:{width:"100%",height:300,backgroundColor:"#000",borderRadius:14,overflow:"hidden"},
   hint:{color:"#8E879B",fontSize:11,marginTop:12},
   label:{color:"white",fontSize:14,fontWeight:"700",marginTop:25,marginBottom:9},
   input:{minHeight:115,borderRadius:14,backgroundColor:"#171422",borderWidth:1,borderColor:"#302A3D",color:"white",padding:14,textAlignVertical:"top"},
