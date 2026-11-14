@@ -147,6 +147,8 @@ export default function UploadScreen() {
       setCaption("");
       router.replace("/");
     } catch (error) {
+      if (uploadedPath) await supabase.storage.from("videos").remove([uploadedPath]);
+      if (uploadedCoverPath) await supabase.storage.from("thumbnails").remove([uploadedCoverPath]);
       Alert.alert("Upload failed", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setLoading(false);
