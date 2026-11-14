@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Image } from "react-native";
 import { supabase } from "../lib/supabase";
+import VideoTrim, { showEditor } from "react-native-video-trim";
 
 export default function UploadScreen() {
   const router = useRouter();
@@ -18,6 +19,29 @@ export default function UploadScreen() {
   const [coverMimeType, setCoverMimeType] = useState("image/jpeg");
   const [loading, setLoading] = useState(false);
   const previewPlayer = useVideoPlayer(videoUri, (player) => { player.loop = true; });
+
+  useEffect(() => {
+    const finished = VideoTrim.onFinishTrimming(({ outputPath, duration }) => {
+      setVideoUri(outputPath);
+      setDurationSeconds(Math.round(duration / 1000));
+      setVideoName("Edited video");
+      setMimeType("video/mp4");
+      Alert.alert("Video edited", "Your trimmed video is ready to preview.");
+    });
+    const failed = VideoTrim.onError(({ message }) => {
+      Alert.alert("Video editing failed", message || "Please try again.");
+    });
+    return () => { finished.remove(); failed.remove(); };
+  }, []);
+
+  function editVideo() {
+    if (!videoUri) return;
+    try {
+      showEditor(videoUri, { maxDuration: 180_000, minDuration: 1_000, headerText: "Edit your VILATUCK video" });
+    } catch (error) {
+      Alert.alert("Editor unavailable", error instanceof Error ? error.message : "Please rebuild the app with video editing enabled.");
+    }
+  }
 
   function useSelectedVideo(asset: ImagePicker.ImagePickerAsset) {
     if (asset.fileSize && asset.fileSize > 200 * 1024 * 1024) {
@@ -187,7 +211,7 @@ export default function UploadScreen() {
             <Text style={s.chooseText}>Gallery</Text>
           </Pressable>
         </View>
-        {videoUri ? <Pressable onPress={() => { setVideoUri(null); setDurationSeconds(null); setVideoName(""); }}><Text style={s.removeText}>Remove selected video</Text></Pressable> : null}
+        {videoUri ? <View style={s.actionRow}><Pressable onPress={editVideo} style={s.secondaryButton}><Ionicons name="cut-outline" size={17} color="white" /><Text style={s.chooseText}>Trim / edit video</Text></Pressable><Pressable onPress={() => { setVideoUri(null); setDurationSeconds(null); setVideoName(""); }}><Text style={s.removeText}>Remove</Text></Pressable></View> : null}
       </View>
       <View style={s.coverSection}>
         <Text style={s.label}>Video cover (optional)</Text>
