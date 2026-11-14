@@ -13,6 +13,7 @@ export default function UploadScreen() {
   const [caption, setCaption] = useState("");
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState("video/mp4");
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [coverMimeType, setCoverMimeType] = useState("image/jpeg");
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,12 @@ export default function UploadScreen() {
       Alert.alert("Video is too large", "Please choose a video smaller than 250 MB.");
       return;
     }
+    if (asset.duration && asset.duration > 180000) {
+      Alert.alert("Video is too long", "VILATUCK videos can be up to 3 minutes. Please choose a shorter video.");
+      return;
+    }
     setVideoUri(asset.uri);
+    setDurationSeconds(typeof asset.duration === "number" ? Math.round(asset.duration / 1000) : null);
     setVideoName(asset.fileName || "Selected video");
     setMimeType(asset.mimeType || "video/mp4");
   }
@@ -133,6 +139,7 @@ export default function UploadScreen() {
         caption: caption.trim() || null,
         video_url: publicUrl.publicUrl,
         thumbnail_url: thumbnailUrl,
+        duration_seconds: durationSeconds,
         status: "published",
         visibility: "public",
       });
@@ -143,6 +150,7 @@ export default function UploadScreen() {
       }
       Alert.alert("Video published", "Your video has been uploaded to VILATUCK.");
       setVideoUri(null);
+      setDurationSeconds(null);
       setVideoName("");
       setCaption("");
       router.replace("/");
@@ -163,7 +171,7 @@ export default function UploadScreen() {
       <View style={s.picker}>
         <Ionicons name={videoUri ? "checkmark-circle" : "videocam-outline"} size={42} color="#B9A5FF" />
         <Text style={s.pickerTitle}>{videoUri ? "Video selected" : "Create your video"}</Text>
-        <Text style={s.pickerHint}>{videoUri ? videoName : "Record a new video or choose one from your gallery"}</Text>
+        <Text style={s.pickerHint}>{videoUri ? `${videoName}${durationSeconds !== null ? ` · ${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")}` : ""}` : "Record a new video or choose one from your gallery"}</Text>
         <View style={s.actionRow}>
           <Pressable onPress={recordVideo} style={s.chooseButton}>
             <Ionicons name="videocam" size={17} color="white" />
@@ -174,7 +182,7 @@ export default function UploadScreen() {
             <Text style={s.chooseText}>Gallery</Text>
           </Pressable>
         </View>
-        {videoUri ? <Pressable onPress={() => { setVideoUri(null); setVideoName(""); }}><Text style={s.removeText}>Remove selected video</Text></Pressable> : null}
+        {videoUri ? <Pressable onPress={() => { setVideoUri(null); setDurationSeconds(null); setVideoName(""); }}><Text style={s.removeText}>Remove selected video</Text></Pressable> : null}
       </View>
       <View style={s.coverSection}>
         <Text style={s.label}>Video cover (optional)</Text>
