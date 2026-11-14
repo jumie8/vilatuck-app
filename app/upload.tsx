@@ -20,8 +20,13 @@ export default function UploadScreen() {
   const previewPlayer = useVideoPlayer(videoUri, (player) => { player.loop = true; });
 
   function useSelectedVideo(asset: ImagePicker.ImagePickerAsset) {
-    if (asset.fileSize && asset.fileSize > 250 * 1024 * 1024) {
-      Alert.alert("Video is too large", "Please choose a video smaller than 250 MB.");
+    if (asset.fileSize && asset.fileSize > 200 * 1024 * 1024) {
+      Alert.alert("Video is too large", "Please choose a video smaller than 200 MB.");
+      return;
+    }
+    const selectedMimeType = asset.mimeType || "video/mp4";
+    if (!["video/mp4", "video/quicktime", "video/webm"].includes(selectedMimeType)) {
+      Alert.alert("Unsupported video format", "Please choose an MP4, MOV or WebM video.");
       return;
     }
     if (asset.duration && asset.duration > 180000) {
@@ -31,7 +36,7 @@ export default function UploadScreen() {
     setVideoUri(asset.uri);
     setDurationSeconds(typeof asset.duration === "number" ? Math.round(asset.duration / 1000) : null);
     setVideoName(asset.fileName || "Selected video");
-    setMimeType(asset.mimeType || "video/mp4");
+    setMimeType(selectedMimeType);
   }
 
   async function chooseVideo() {
@@ -64,8 +69,8 @@ export default function UploadScreen() {
     });
     if (!result.canceled && result.assets.length > 0) {
       const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-        Alert.alert("Image is too large", "Please choose a cover image smaller than 10 MB.");
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert("Image is too large", "Please choose a cover image smaller than 5 MB.");
         return;
       }
       setCoverUri(asset.uri);
@@ -193,9 +198,10 @@ export default function UploadScreen() {
         </View>
       </View>
       {videoUri ? <View style={s.previewWrap}><Text style={s.label}>Video preview</Text><VideoView player={previewPlayer} style={s.preview} contentFit="contain" nativeControls allowsFullscreen /></View> : null}
-      <Text style={s.hint}>Maximum video length: 3 minutes. Maximum file size: 250 MB.</Text>
+      <Text style={s.hint}>Maximum video length: 3 minutes. Maximum video size: 200 MB. Cover images: up to 5 MB.</Text>
       <Text style={s.label}>Caption</Text>
-      <TextInput value={caption} onChangeText={setCaption} placeholder="Write a caption and add #hashtags..." placeholderTextColor="#777284" multiline style={s.input} />
+      <TextInput value={caption} onChangeText={(value) => setCaption(value.slice(0, 2200))} placeholder="Write a caption and add #hashtags..." placeholderTextColor="#777284" multiline maxLength={2200} style={s.input} />
+      <Text style={s.hint}>{caption.length}/2200 characters</Text>
       <View style={s.notice}>
         <Ionicons name="information-circle-outline" size={20} color="#D7C9FF" />
         <Text style={s.noticeText}>Videos are stored in VILATUCK's Supabase videos bucket. Please upload content you own or have permission to share.</Text>
