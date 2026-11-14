@@ -67,7 +67,7 @@ function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onC
             <Ionicons name="chatbubble-ellipses-outline" size={27} color="white" />
             <Text style={s.actionText}>Comment</Text>
           </Pressable>
-          <Pressable style={s.action} onPress={() => Share.share({ message: item.caption ? `${item.caption} ${item.video_url}` : item.video_url })}>
+          <Pressable style={s.action} onPress={() => Share.share({ message: `${item.caption || "Watch this video on VILATUCK"}\n\nOpen in VILATUCK: vilatuck://video/${item.id}\nWatch video: ${item.video_url}` })}>
             <Ionicons name="share-social-outline" size={27} color="white" />
             <Text style={s.actionText}>Share</Text>
           </Pressable>
