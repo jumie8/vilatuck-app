@@ -26,8 +26,8 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, likeCount, onLike, onComment }: {
-  item: FeedVideo; liked: boolean; likeCount: number; onLike: () => void; onComment: () => void;
+function VideoCard({ item, liked, likeCount, isFollowing, onLike, onComment, onFollow }: {
+  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; onLike: () => void; onComment: () => void; onFollow: () => void;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
@@ -50,6 +50,9 @@ function VideoCard({ item, liked, likeCount, onLike, onComment }: {
       <View style={s.videoInfo}>
         <View style={s.creatorInfo}>
           <Text style={s.creator}>{creator} {item.profile?.is_verified ? <Text style={s.verified}>✓</Text> : null}</Text>
+          <Pressable onPress={onFollow} style={s.followButton}>
+            <Text style={s.followText}>{isFollowing ? "Following ✓" : "＋ Follow"}</Text>
+          </Pressable>
           <Text style={s.caption}>{item.caption || " "}</Text>
           <Text style={s.sound}><Ionicons name="musical-notes" size={13} color="white" /> VILATUCK original</Text>
         </View>
@@ -78,12 +81,16 @@ export default function HomeScreen() {
   const [videos, setVideos] = useState<FeedVideo[]>([]);
   const [likedIds, setLikedIds] = useState<string[]>([]);
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadFeed = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+      if (!user) setFollowingIds([]);
       let query = supabase.from("videos")
         .select("id,user_id,caption,video_url,views_count,created_at,visibility,status")
         .eq("status", "published")
@@ -122,12 +129,15 @@ export default function HomeScreen() {
 
       const userIds = [...new Set(rows.map(row => row.user_id))];
       const videoIds = rows.map(row => row.id);
-      const [profilesResult, likesResult] = await Promise.all([
+      const [profilesResult, likesResult, followingResult] = await Promise.all([
         supabase.from("profiles").select("id,username,display_name,avatar_url,is_verified").in("id", userIds),
         supabase.from("video_likes").select("video_id,user_id").in("video_id", videoIds),
+        user ? supabase.from("follows").select("following_id").eq("follower_id", user.id) : Promise.resolve({ data: [], error: null }),
       ]);
       if (profilesResult.error) throw profilesResult.error;
       if (likesResult.error) throw likesResult.error;
+      if (followingResult.error) throw followingResult.error;
+      setFollowingIds((followingResult.data || []).map((row: { following_id: string }) => row.following_id));
 
       const profiles = new Map((profilesResult.data || []).map((profile: ProfileRow) => [profile.id, profile]));
       const allLikes = likesResult.data || [];
@@ -172,6 +182,27 @@ export default function HomeScreen() {
     }
   }
 
+  async function toggleFollow(creatorId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      Alert.alert("Sign in to follow creators", "Create a VILATUCK account or sign in first.", [
+        { text: "Not now", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/auth") },
+      ]);
+      return;
+    }
+    if (creatorId === user.id) return;
+    const alreadyFollowing = followingIds.includes(creatorId);
+    setFollowingIds(current => alreadyFollowing ? current.filter(id => id !== creatorId) : [...current, creatorId]);
+    const result = alreadyFollowing
+      ? await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", creatorId)
+      : await supabase.from("follows").insert({ follower_id: user.id, following_id: creatorId });
+    if (result.error) {
+      setFollowingIds(current => alreadyFollowing ? [...current, creatorId] : current.filter(id => id !== creatorId));
+      Alert.alert("Follow not saved", result.error.message);
+    }
+  }
+
   function refresh() {
     setRefreshing(true);
     loadFeed();
@@ -211,6 +242,8 @@ export default function HomeScreen() {
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <VideoCard item={item} liked={likedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
+              isFollowing={followingIds.includes(item.user_id)}
+              onFollow={() => toggleFollow(item.user_id)}
               onLike={() => toggleLike(item.id)}
               onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
             />
@@ -249,6 +282,8 @@ const s = StyleSheet.create({
   videoInfo: { position: "absolute", left: 15, right: 12, bottom: 16, flexDirection: "row", alignItems: "flex-end" },
   creatorInfo: { flex: 1, paddingRight: 12 },
   creator: { color: "white", fontWeight: "800", fontSize: 15, textShadowColor: "black", textShadowRadius: 5 },
+  followButton: { alignSelf: "flex-start", borderWidth: 1, borderColor: "#B49CFF", borderRadius: 7, paddingHorizontal: 9, paddingVertical: 4, marginTop: 6, backgroundColor: "rgba(30,20,50,0.7)" },
+  followText: { color: "white", fontSize: 11, fontWeight: "800" },
   verified: { color: "#8D73FF" },
   caption: { color: "white", fontSize: 12, marginTop: 7, lineHeight: 18, textShadowColor: "black", textShadowRadius: 5 },
   sound: { color: "white", fontSize: 11, marginTop: 8 },
