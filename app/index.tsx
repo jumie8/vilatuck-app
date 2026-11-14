@@ -26,8 +26,8 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onComment, onFollow }: {
-  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onComment: () => void; onFollow: () => void;
+function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onComment, onFollow, router }: {
+  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
@@ -49,7 +49,9 @@ function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onC
       </Pressable>
       <View style={s.videoInfo}>
         <View style={s.creatorInfo}>
-          <Text style={s.creator}>{creator} {item.profile?.is_verified ? <Text style={s.verified}>✓</Text> : null}</Text>
+          <Pressable onPress={() => router.push({ pathname: "/creator/[id]", params: { id: item.user_id } })}>
+            <Text style={s.creator}>{creator} {item.profile?.is_verified ? <Text style={s.verified}>✓</Text> : null}</Text>
+          </Pressable>
           {canFollow && <Pressable onPress={onFollow} style={s.followButton}>
             <Text style={s.followText}>{isFollowing ? "Following ✓" : "＋ Follow"}</Text>
           </Pressable>}
@@ -245,6 +247,7 @@ export default function HomeScreen() {
               isFollowing={followingIds.includes(item.user_id)}
               canFollow={!!currentUserId && item.user_id !== currentUserId}
               onFollow={() => toggleFollow(item.user_id)}
+              router={router}
               onLike={() => toggleLike(item.id)}
               onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
             />
