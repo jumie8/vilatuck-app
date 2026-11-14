@@ -9,6 +9,7 @@ VILATUCK is a cross-platform social video app starter built with Expo Router and
 - Live streaming preview screen
 - Creator wallet preview
 - Profile and verification information screen
+- Video selection from the phone gallery and caption entry screen (publishing awaits backend connection)
 - Android and iOS Expo project configuration
 
 ## Run locally
