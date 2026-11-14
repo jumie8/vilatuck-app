@@ -50,7 +50,7 @@ export default function HomeScreen() {
       <View style={s.bottom}>
         <Pressable style={s.navItem}><Ionicons name="home" size={23} color={PURPLE}/><Text style={[s.navText,{color:PURPLE}]}>Home</Text></Pressable>
         <Pressable style={s.navItem} onPress={()=>router.push("/live")}><Ionicons name="radio-outline" size={23} color="#A6A3B2"/><Text style={s.navText}>Live</Text></Pressable>
-        <Pressable style={s.createBtn} onPress={()=>router.push("/profile")}><Ionicons name="add" size={28} color="white"/></Pressable>
+        <Pressable style={s.createBtn} onPress={()=>router.push("/upload")}><Ionicons name="add" size={28} color="white"/></Pressable>
         <Pressable style={s.navItem} onPress={()=>router.push("/wallet")}><Ionicons name="wallet-outline" size={23} color="#A6A3B2"/><Text style={s.navText}>Wallet</Text></Pressable>
         <Pressable style={s.navItem} onPress={()=>router.push("/profile")}><Ionicons name="person-outline" size={23} color="#A6A3B2"/><Text style={s.navText}>Profile</Text></Pressable>
       </View>
