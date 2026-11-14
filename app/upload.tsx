@@ -13,6 +13,16 @@ export default function UploadScreen() {
   const [mimeType, setMimeType] = useState("video/mp4");
   const [loading, setLoading] = useState(false);
 
+  function useSelectedVideo(asset: ImagePicker.ImagePickerAsset) {
+    if (asset.fileSize && asset.fileSize > 250 * 1024 * 1024) {
+      Alert.alert("Video is too large", "Please choose a video smaller than 250 MB.");
+      return;
+    }
+    setVideoUri(asset.uri);
+    setVideoName(asset.fileName || "Selected video");
+    setMimeType(asset.mimeType || "video/mp4");
+  }
+
   async function chooseVideo() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -25,10 +35,23 @@ export default function UploadScreen() {
       quality: 1,
     });
     if (!result.canceled && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setVideoUri(asset.uri);
-      setVideoName(asset.fileName || "Selected video");
-      setMimeType(asset.mimeType || "video/mp4");
+      useSelectedVideo(result.assets[0]);
+    }
+  }
+
+  async function recordVideo() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Camera permission needed", "Allow VILATUCK to use your camera to record a video.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      videoMaxDuration: 180,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      useSelectedVideo(result.assets[0]);
     }
   }
 
@@ -89,12 +112,23 @@ export default function UploadScreen() {
       <Pressable onPress={() => router.back()} style={s.back}><Ionicons name="arrow-back" size={25} color="white" /></Pressable>
       <Text style={s.title}>Create a video</Text>
       <Text style={s.subtitle}>Share a moment with the VILATUCK community.</Text>
-      <Pressable onPress={chooseVideo} style={s.picker}>
-        <Ionicons name={videoUri ? "checkmark-circle" : "cloud-upload-outline"} size={42} color="#B9A5FF" />
-        <Text style={s.pickerTitle}>{videoUri ? "Video selected" : "Choose video from phone"}</Text>
-        <Text style={s.pickerHint}>{videoUri ? videoName : "Select a video from your gallery"}</Text>
-        <View style={s.chooseButton}><Text style={s.chooseText}>{videoUri ? "Choose another video" : "Select video"}</Text></View>
-      </Pressable>
+      <View style={s.picker}>
+        <Ionicons name={videoUri ? "checkmark-circle" : "videocam-outline"} size={42} color="#B9A5FF" />
+        <Text style={s.pickerTitle}>{videoUri ? "Video selected" : "Create your video"}</Text>
+        <Text style={s.pickerHint}>{videoUri ? videoName : "Record a new video or choose one from your gallery"}</Text>
+        <View style={s.actionRow}>
+          <Pressable onPress={recordVideo} style={s.chooseButton}>
+            <Ionicons name="videocam" size={17} color="white" />
+            <Text style={s.chooseText}>Record video</Text>
+          </Pressable>
+          <Pressable onPress={chooseVideo} style={s.secondaryButton}>
+            <Ionicons name="images-outline" size={17} color="white" />
+            <Text style={s.chooseText}>Gallery</Text>
+          </Pressable>
+        </View>
+        {videoUri ? <Pressable onPress={() => { setVideoUri(null); setVideoName(""); }}><Text style={s.removeText}>Remove selected video</Text></Pressable> : null}
+      </View>
+      <Text style={s.hint}>Maximum video length: 3 minutes. Maximum file size: 250 MB.</Text>
       <Text style={s.label}>Caption</Text>
       <TextInput value={caption} onChangeText={setCaption} placeholder="Write a caption and add #hashtags..." placeholderTextColor="#777284" multiline style={s.input} />
       <View style={s.notice}>
@@ -117,8 +151,12 @@ const s = StyleSheet.create({
   picker:{minHeight:230,marginTop:25,borderRadius:20,borderWidth:1,borderColor:"#514078",borderStyle:"dashed",backgroundColor:"#171422",alignItems:"center",justifyContent:"center",padding:20},
   pickerTitle:{color:"white",fontSize:17,fontWeight:"800",marginTop:14,textAlign:"center"},
   pickerHint:{color:"#AAA5B7",fontSize:12,marginTop:7,textAlign:"center"},
-  chooseButton:{marginTop:17,backgroundColor:"#7047FF",paddingHorizontal:22,paddingVertical:12,borderRadius:12},
+  actionRow:{flexDirection:"row",gap:10,marginTop:17,flexWrap:"wrap",justifyContent:"center"},
+  chooseButton:{flexDirection:"row",alignItems:"center",gap:7,backgroundColor:"#7047FF",paddingHorizontal:16,paddingVertical:12,borderRadius:12},
+  secondaryButton:{flexDirection:"row",alignItems:"center",gap:7,backgroundColor:"#383044",paddingHorizontal:16,paddingVertical:12,borderRadius:12},
   chooseText:{color:"white",fontWeight:"800"},
+  removeText:{color:"#F0A5B5",fontSize:12,fontWeight:"700",marginTop:18},
+  hint:{color:"#8E879B",fontSize:11,marginTop:12},
   label:{color:"white",fontSize:14,fontWeight:"700",marginTop:25,marginBottom:9},
   input:{minHeight:115,borderRadius:14,backgroundColor:"#171422",borderWidth:1,borderColor:"#302A3D",color:"white",padding:14,textAlignVertical:"top"},
   notice:{flexDirection:"row",gap:10,backgroundColor:"#211D2D",borderRadius:14,padding:14,marginTop:20},
