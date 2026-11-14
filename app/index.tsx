@@ -217,6 +217,7 @@ export default function HomeScreen() {
         <View style={s.headerActions}>
           <Pressable onPress={() => router.push("/live")} style={s.iconBtn}><Ionicons name="radio-outline" size={23} color="white" /></Pressable>
           <Pressable onPress={() => router.push("/notifications")} style={s.iconBtn}><Ionicons name="notifications-outline" size={23} color="white" /></Pressable>
+          <Pressable onPress={() => router.push("/messages")} style={s.iconBtn}><Ionicons name="chatbubble-ellipses-outline" size={23} color="white" /></Pressable>
           <Pressable onPress={() => router.push("/wallet")} style={s.iconBtn}><Ionicons name="wallet-outline" size={23} color="white" /></Pressable>
           <Pressable onPress={() => router.push("/profile")} style={s.avatar}><Ionicons name="person" size={18} color="white" /></Pressable>
         </View>
