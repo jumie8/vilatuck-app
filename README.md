@@ -23,6 +23,8 @@ The app uses only the project's publishable key. Never add a Supabase service-ro
 - Profile and verification information screen
 - Supabase email/password sign-up and sign-in
 - Video selection, upload to Supabase Storage, and video metadata insert
+- Live database-backed For You, Following, and Trending feed tabs
+- Video playback, persisted likes, sharing, and comments
 - Android and iOS Expo project configuration
 
 ## Run locally
