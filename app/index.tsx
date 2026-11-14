@@ -26,8 +26,8 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onComment, onFollow, router }: {
-  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
+function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, onLike, onSave, onComment, onFollow, router }: {
+  item: FeedVideo; liked: boolean; saved: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onSave: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
@@ -71,6 +71,10 @@ function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onC
             <Ionicons name="share-social-outline" size={27} color="white" />
             <Text style={s.actionText}>Share</Text>
           </Pressable>
+          <Pressable style={s.action} onPress={onSave}>
+            <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={27} color={saved ? "#A88FFF" : "white"} />
+            <Text style={s.actionText}>{saved ? "Saved" : "Save"}</Text>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -82,6 +86,7 @@ export default function HomeScreen() {
   const [tab, setTab] = useState("For You");
   const [videos, setVideos] = useState<FeedVideo[]>([]);
   const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -131,15 +136,18 @@ export default function HomeScreen() {
 
       const userIds = [...new Set(rows.map(row => row.user_id))];
       const videoIds = rows.map(row => row.id);
-      const [profilesResult, likesResult, followingResult] = await Promise.all([
+      const [profilesResult, likesResult, followingResult, bookmarksResult] = await Promise.all([
         supabase.from("profiles").select("id,username,display_name,avatar_url,is_verified").in("id", userIds),
         supabase.from("video_likes").select("video_id,user_id").in("video_id", videoIds),
         user ? supabase.from("follows").select("following_id").eq("follower_id", user.id) : Promise.resolve({ data: [], error: null }),
+        user ? supabase.from("bookmarks").select("video_id").eq("user_id", user.id).in("video_id", videoIds) : Promise.resolve({ data: [], error: null }),
       ]);
       if (profilesResult.error) throw profilesResult.error;
       if (likesResult.error) throw likesResult.error;
       if (followingResult.error) throw followingResult.error;
+      if (bookmarksResult.error) throw bookmarksResult.error;
       setFollowingIds((followingResult.data || []).map((row: { following_id: string }) => row.following_id));
+      setSavedIds((bookmarksResult.data || []).map((row: { video_id: string }) => row.video_id));
 
       const profiles = new Map((profilesResult.data || []).map((profile: ProfileRow) => [profile.id, profile]));
       const allLikes = likesResult.data || [];
@@ -181,6 +189,25 @@ export default function HomeScreen() {
       setLikedIds(current => alreadyLiked ? [...current, videoId] : current.filter(id => id !== videoId));
       setLikeCounts(current => ({ ...current, [videoId]: Math.max(0, (current[videoId] || 0) + (alreadyLiked ? 1 : -1)) }));
       Alert.alert("Like not saved", result.error.message);
+    }
+  }
+
+  async function toggleSave(videoId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      Alert.alert("Sign in to save videos", "Sign in to save videos to your collection.", [
+        { text: "Not now", style: "cancel" }, { text: "Sign in", onPress: () => router.push("/auth") },
+      ]);
+      return;
+    }
+    const alreadySaved = savedIds.includes(videoId);
+    setSavedIds(current => alreadySaved ? current.filter(id => id !== videoId) : [...current, videoId]);
+    const result = alreadySaved
+      ? await supabase.from("bookmarks").delete().eq("video_id", videoId).eq("user_id", user.id)
+      : await supabase.from("bookmarks").insert({ video_id: videoId, user_id: user.id });
+    if (result.error) {
+      setSavedIds(current => alreadySaved ? [...current, videoId] : current.filter(id => id !== videoId));
+      Alert.alert("Save not updated", result.error.message);
     }
   }
 
@@ -245,12 +272,13 @@ export default function HomeScreen() {
           data={videos}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <VideoCard item={item} liked={likedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
+            <VideoCard item={item} liked={likedIds.includes(item.id)} saved={savedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
               isFollowing={followingIds.includes(item.user_id)}
               canFollow={!!currentUserId && item.user_id !== currentUserId}
               onFollow={() => toggleFollow(item.user_id)}
               router={router}
               onLike={() => toggleLike(item.id)}
+              onSave={() => toggleSave(item.id)}
               onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
             />
           )}
