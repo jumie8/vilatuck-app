@@ -212,7 +212,7 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <VideoCard item={item} liked={likedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
               onLike={() => toggleLike(item.id)}
-              onComment={() => Alert.alert("Comments", "Comment viewing and posting are the next feature to connect.")}
+              onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
             />
           )}
           contentContainerStyle={s.feed}
