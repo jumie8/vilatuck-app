@@ -26,8 +26,8 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, likeCount, isFollowing, onLike, onComment, onFollow }: {
-  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; onLike: () => void; onComment: () => void; onFollow: () => void;
+function VideoCard({ item, liked, likeCount, isFollowing, canFollow, onLike, onComment, onFollow }: {
+  item: FeedVideo; liked: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onComment: () => void; onFollow: () => void;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
@@ -50,9 +50,9 @@ function VideoCard({ item, liked, likeCount, isFollowing, onLike, onComment, onF
       <View style={s.videoInfo}>
         <View style={s.creatorInfo}>
           <Text style={s.creator}>{creator} {item.profile?.is_verified ? <Text style={s.verified}>✓</Text> : null}</Text>
-          <Pressable onPress={onFollow} style={s.followButton}>
+          {canFollow && <Pressable onPress={onFollow} style={s.followButton}>
             <Text style={s.followText}>{isFollowing ? "Following ✓" : "＋ Follow"}</Text>
-          </Pressable>
+          </Pressable>}
           <Text style={s.caption}>{item.caption || " "}</Text>
           <Text style={s.sound}><Ionicons name="musical-notes" size={13} color="white" /> VILATUCK original</Text>
         </View>
@@ -243,6 +243,7 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <VideoCard item={item} liked={likedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
               isFollowing={followingIds.includes(item.user_id)}
+              canFollow={!!currentUserId && item.user_id !== currentUserId}
               onFollow={() => toggleFollow(item.user_id)}
               onLike={() => toggleLike(item.id)}
               onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
