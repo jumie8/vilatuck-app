@@ -132,11 +132,13 @@ export default function UploadScreen() {
         user_id: user.id,
         caption: caption.trim() || null,
         video_url: publicUrl.publicUrl,
+        thumbnail_url: thumbnailUrl,
         status: "published",
         visibility: "public",
       });
       if (insertError) {
         await supabase.storage.from("videos").remove([uploadedPath]);
+        if (uploadedCoverPath) await supabase.storage.from("thumbnails").remove([uploadedCoverPath]);
         throw insertError;
       }
       Alert.alert("Video published", "Your video has been uploaded to VILATUCK.");
