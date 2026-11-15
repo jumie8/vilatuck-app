@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert, Share } from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert, Share, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -43,7 +43,7 @@ function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, onLi
 
   return (
     <View style={s.videoCard}>
-      <VideoView player={player} style={s.video} contentFit="contain" nativeControls allowsFullscreen />
+      <VideoView player={player} style={s.video} contentFit="cover" />
       <Pressable style={s.videoTap} onPress={togglePlayback}>
         {!playing && <View style={s.playCircle}><Ionicons name="play" size={34} color="white" /></View>}
       </Pressable>
@@ -265,7 +265,7 @@ export default function HomeScreen() {
           <Ionicons name="videocam-outline" size={58} color="#82789A" />
           <Text style={s.emptyTitle}>{tab === "Following" ? "Follow creators to see their videos" : "No videos yet"}</Text>
           <Text style={s.emptyText}>Be one of the first to share a video with the VILATUCK community.</Text>
-          <Pressable style={s.uploadButton} onPress={() => router.push("/upload")}><Text style={s.uploadText}>Upload a video</Text></Pressable>
+          <Pressable style={s.uploadButton} onPress={() => router.push("/camera")}><Text style={s.uploadText}>Record a video</Text></Pressable>
           {tab === "Following" && <Pressable onPress={() => setTab("For You")}><Text style={s.linkText}>Explore For You</Text></Pressable>}
         </View>
       ) : (
@@ -284,13 +284,16 @@ export default function HomeScreen() {
             />
           )}
           contentContainerStyle={s.feed}
+          pagingEnabled
+          decelerationRate="fast"
+          snapToAlignment="start"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={PURPLE} />}
         />
       )}
       <View style={s.bottom}>
         <Pressable style={s.navItem}><Ionicons name="home" size={23} color={PURPLE} /><Text style={[s.navText, { color: PURPLE }]}>Home</Text></Pressable>
         <Pressable style={s.navItem} onPress={() => router.push("/live")}><Ionicons name="radio-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Live</Text></Pressable>
-        <Pressable style={s.createBtn} onPress={() => router.push("/upload")}><Ionicons name="add" size={28} color="white" /></Pressable>
+        <Pressable style={s.createBtn} onPress={() => router.push("/camera")}><Ionicons name="add" size={28} color="white" /></Pressable>
         <Pressable style={s.navItem} onPress={() => router.push("/wallet")}><Ionicons name="wallet-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Wallet</Text></Pressable>
         <Pressable style={s.navItem} onPress={() => router.push("/profile")}><Ionicons name="person-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Profile</Text></Pressable>
       </View>
@@ -309,8 +312,8 @@ const s = StyleSheet.create({
   tab: { fontSize: 14, color: "#8F8B9B", fontWeight: "600" },
   activeTab: { color: "white" },
   underline: { height: 3, backgroundColor: PURPLE, borderRadius: 3, marginTop: 7 },
-  feed: { paddingHorizontal: 12, paddingBottom: 12, gap: 14 },
-  videoCard: { height: 590, borderRadius: 20, overflow: "hidden", backgroundColor: "#171422" },
+  feed: { paddingBottom: 0 },
+  videoCard: { height: Dimensions.get("window").height - 222, width: "100%", borderRadius: 0, overflow: "hidden", backgroundColor: "#171422" },
   video: { ...StyleSheet.absoluteFillObject, backgroundColor: "#09090F" },
   videoTap: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   playCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: "rgba(0,0,0,0.48)", alignItems: "center", justifyContent: "center" },
