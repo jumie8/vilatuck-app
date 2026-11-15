@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, ScrollView, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -10,6 +10,7 @@ import VideoTrim, { showEditor } from "react-native-video-trim";
 
 export default function UploadScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ videoUri?: string; videoName?: string }>();
   const [videoName, setVideoName] = useState("");
   const [caption, setCaption] = useState("");
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -19,6 +20,14 @@ export default function UploadScreen() {
   const [coverMimeType, setCoverMimeType] = useState("image/jpeg");
   const [loading, setLoading] = useState(false);
   const previewPlayer = useVideoPlayer(videoUri, (player) => { player.loop = true; });
+
+  useEffect(() => {
+    if (typeof params.videoUri === "string" && params.videoUri.length > 0) {
+      setVideoUri(params.videoUri);
+      setVideoName(typeof params.videoName === "string" ? params.videoName : "Camera recording");
+      setMimeType("video/mp4");
+    }
+  }, [params.videoUri, params.videoName]);
 
   useEffect(() => {
     const finished = VideoTrim.onFinishTrimming(({ outputPath, duration }) => {
