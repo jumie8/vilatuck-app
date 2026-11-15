@@ -141,6 +141,10 @@ export default function ProfileScreen() {
       <Text style={s.topTitle}>Profile</Text>
       <Pressable onPress={signOut}><Ionicons name="log-out-outline" size={24} color="#FF8B9A" /></Pressable>
     </View>
+    <View style={s.coverBanner}>
+      <View style={s.coverPattern}><Text style={s.coverBrand}>VILATUCK</Text></View>
+      <Pressable style={s.coverEdit} onPress={() => setEditing(true)}><Ionicons name="create-outline" size={20} color="white" /></Pressable>
+    </View>
     <View style={s.avatar}>
       {profile?.avatar_url ? <Image source={{ uri: profile.avatar_url }} style={s.avatarImage} /> : <Ionicons name="person" size={38} color="white" />}
     </View>
