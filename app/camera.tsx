@@ -39,7 +39,7 @@ export default function CameraScreen() {
       const result = await recordingTask.current;
       if (result?.uri) {
         setBusy(true);
-        router.push({ pathname: "/upload", params: { videoUri: result.uri, videoName: "VILATUCK camera recording" } });
+        router.push({ pathname: "/upload", params: { videoUri: result.uri, videoName: "VILATUCK camera recording", videoMimeType: "video/mp4" } });
       }
     } catch (error) {
       Alert.alert("Recording failed", error instanceof Error ? error.message : "Please try again.");
@@ -76,7 +76,7 @@ export default function CameraScreen() {
         Alert.alert("Video too large", "Choose a video smaller than 200 MB.");
         return;
       }
-      router.push({ pathname: "/upload", params: { videoUri: asset.uri, videoName: asset.fileName || "Gallery video" } });
+      router.push({ pathname: "/upload", params: { videoUri: asset.uri, videoName: asset.fileName || "Gallery video", videoMimeType: asset.mimeType || "video/mp4", videoDuration: String(Math.round((asset.duration || 0) / 1000)) } });
     }
   }
 
