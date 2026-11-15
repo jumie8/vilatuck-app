@@ -10,7 +10,7 @@ import VideoTrim, { showEditor } from "react-native-video-trim";
 
 export default function UploadScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ videoUri?: string; videoName?: string }>();
+  const params = useLocalSearchParams<{ videoUri?: string; videoName?: string; videoMimeType?: string; videoDuration?: string }>();
   const [videoName, setVideoName] = useState("");
   const [caption, setCaption] = useState("");
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -25,9 +25,10 @@ export default function UploadScreen() {
     if (typeof params.videoUri === "string" && params.videoUri.length > 0) {
       setVideoUri(params.videoUri);
       setVideoName(typeof params.videoName === "string" ? params.videoName : "Camera recording");
-      setMimeType("video/mp4");
+      setMimeType(typeof params.videoMimeType === "string" ? params.videoMimeType : "video/mp4");
+      if (typeof params.videoDuration === "string" && Number.isFinite(Number(params.videoDuration))) setDurationSeconds(Number(params.videoDuration));
     }
-  }, [params.videoUri, params.videoName]);
+  }, [params.videoUri, params.videoName, params.videoMimeType, params.videoDuration]);
 
   useEffect(() => {
     const finished = VideoTrim.onFinishTrimming(({ outputPath, duration }) => {
