@@ -20,6 +20,7 @@ export default function ProfileScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [profileTab, setProfileTab] = useState<"posts" | "private" | "reposts" | "saved" | "liked">("posts");
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [likes, setLikes] = useState(0);
@@ -71,6 +72,24 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  useEffect(() => {
+    if (!userId || profileTab === "posts" || profileTab === "private" || profileTab === "reposts") return;
+    let active = true;
+    async function loadCollection() {
+      const relation = profileTab === "saved" ? "bookmarks" : "video_likes";
+      const { data: links, error } = await supabase.from(relation).select("video_id").eq("user_id", userId);
+      if (error) { Alert.alert("Could not load videos", error.message); return; }
+      const ids = (links || []).map((row: { video_id: string }) => row.video_id);
+      if (!ids.length) { if (active) setVideos([]); return; }
+      const { data, error: videosError } = await supabase.from("videos")
+        .select("id,caption,thumbnail_url,video_url,views_count").in("id", ids).order("created_at", { ascending: false });
+      if (videosError) { Alert.alert("Could not load videos", videosError.message); return; }
+      if (active) setVideos((data || []) as Video[]);
+    }
+    loadCollection();
+    return () => { active = false; };
+  }, [userId, profileTab]);
 
   const saveProfile = async () => {
     if (!userId) return;
@@ -132,9 +151,8 @@ export default function ProfileScreen() {
     <Text style={s.handle}>@{profile?.username || "username"}</Text>
     {profile?.bio ? <Text style={s.bio}>{profile.bio}</Text> : null}
     <View style={s.stats}>
-      <View><Text style={s.num}>{videos.length}</Text><Text style={s.muted}>Videos</Text></View>
-      <View><Text style={s.num}>{followers}</Text><Text style={s.muted}>Followers</Text></View>
       <View><Text style={s.num}>{following}</Text><Text style={s.muted}>Following</Text></View>
+      <View><Text style={s.num}>{followers}</Text><Text style={s.muted}>Followers</Text></View>
       <View><Text style={s.num}>{likes}</Text><Text style={s.muted}>Likes</Text></View>
     </View>
     <Pressable style={s.outlineButton} onPress={() => setEditing(!editing)}><Ionicons name="create-outline" size={18} color="white" /><Text style={s.outlineText}>{editing ? "Cancel editing" : "Edit profile"}</Text></Pressable>
@@ -147,12 +165,23 @@ export default function ProfileScreen() {
       <TextInput value={bio} onChangeText={setBio} placeholder="Tell people about yourself" placeholderTextColor="#777" style={[s.input, { minHeight: 78, textAlignVertical: "top" }]} multiline maxLength={160} />
       <Pressable style={s.primary} disabled={saving} onPress={saveProfile}>{saving ? <ActivityIndicator color="white" /> : <Text style={s.primaryText}>Save changes</Text>}</Pressable>
     </View> : null}
-    <View style={s.sectionRow}><Text style={s.sectionTitle}>Your videos</Text><Pressable onPress={() => router.push("/upload")}><Text style={s.uploadLink}>＋ Upload</Text></Pressable></View>
-    {videos.length ? <View style={s.videoGrid}>{videos.map(video => <Pressable key={video.id} style={s.videoTile} onPress={() => router.push("/")}>
+    <View style={s.sectionRow}><Text style={s.sectionTitle}>Your videos</Text><Pressable onPress={() => router.push("/camera")}><Text style={s.uploadLink}>＋ Create</Text></Pressable></View>
+    <View style={s.profileTabs}>
+      {([
+        ["posts", "grid-outline"], ["private", "lock-closed-outline"], ["reposts", "repeat-outline"],
+        ["saved", "bookmark-outline"], ["liked", "heart-outline"],
+      ] as const).map(([key, icon]) => (
+        <Pressable key={key} style={s.profileTab} onPress={() => setProfileTab(key)}>
+          <Ionicons name={icon} size={23} color={profileTab === key ? "white" : "#85808F"} />
+          {profileTab === key ? <View style={s.profileTabLine} /> : null}
+        </Pressable>
+      ))}
+    </View>
+    {videos.length && (profileTab === "posts" || profileTab === "saved" || profileTab === "liked") ? <View style={s.videoGrid}>{videos.map(video => <Pressable key={video.id} style={s.videoTile} onPress={() => router.push("/")}>
       {video.thumbnail_url ? <Image source={{ uri: video.thumbnail_url }} style={s.thumbnail} /> : <View style={s.noThumbnail}><Ionicons name="play" size={27} color="white" /></View>}
       <View style={s.views}><Ionicons name="play" size={11} color="white" /><Text style={s.viewText}>{video.views_count || 0}</Text></View>
       {video.caption ? <Text numberOfLines={2} style={s.caption}>{video.caption}</Text> : null}
-    </Pressable>)}</View> : <View style={s.empty}><Ionicons name="videocam-outline" size={30} color="#A88FFF" /><Text style={s.emptyText}>You haven’t uploaded any videos yet.</Text><Pressable onPress={() => router.push("/upload")}><Text style={s.uploadLink}>Upload your first video</Text></Pressable></View>}
+    </Pressable>)}</View> : <View style={s.empty}><Ionicons name="videocam-outline" size={30} color="#A88FFF" /><Text style={s.emptyText}>{profileTab === "posts" ? "You haven’t uploaded any videos yet." : "Nothing to show here yet."}</Text><Pressable onPress={() => router.push("/upload")}><Text style={s.uploadLink}>Upload your first video</Text></Pressable></View>}
     <View style={s.infoCard}><Ionicons name="shield-checkmark-outline" size={22} color="#A88FFF" /><View style={{ flex: 1 }}><Text style={s.item}>Account verification</Text><Text style={s.muted}>Verified badges are assigned by authorized platform administrators.</Text></View></View>
   </ScrollView>;
 }
@@ -162,7 +191,11 @@ const s = StyleSheet.create({
   center: { flex: 1, backgroundColor: "#09090F", alignItems: "center", justifyContent: "center", gap: 12 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   topTitle: { color: "white", fontWeight: "800", fontSize: 18 },
-  avatar: { width: 92, height: 92, borderRadius: 46, backgroundColor: "#49318D", alignItems: "center", justifyContent: "center", alignSelf: "center", marginTop: 28, overflow: "hidden" },
+  coverBanner: { height: 150, backgroundColor: "#24183E", borderRadius: 15, marginTop: 18, overflow: "hidden", justifyContent: "center", alignItems: "center" },
+  coverPattern: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "#281B48" },
+  coverBrand: { color: "rgba(255,255,255,0.12)", fontSize: 36, fontWeight: "900", letterSpacing: 5 },
+  coverEdit: { position: "absolute", right: 12, top: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
+  avatar: { width: 92, height: 92, borderRadius: 46, backgroundColor: "#49318D", alignItems: "center", justifyContent: "center", alignSelf: "center", marginTop: -42, borderWidth: 4, borderColor: "#09090F", overflow: "hidden" },
   avatarImage: { width: "100%", height: "100%" },
   nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14 },
   name: { color: "white", fontWeight: "900", fontSize: 21, textAlign: "center" },
@@ -171,6 +204,9 @@ const s = StyleSheet.create({
   muted: { color: "#AAA5B7", fontSize: 12, lineHeight: 18, marginTop: 5 },
   mutedCenter: { color: "#AAA5B7", textAlign: "center", marginTop: 12, lineHeight: 20 },
   stats: { flexDirection: "row", justifyContent: "space-around", marginVertical: 25 },
+  profileTabs: { flexDirection: "row", justifyContent: "space-around", borderBottomWidth: 1, borderBottomColor: "#292533", marginTop: 22, marginBottom: 16 },
+  profileTab: { flex: 1, alignItems: "center", paddingVertical: 12, gap: 8 },
+  profileTabLine: { height: 3, width: "60%", borderRadius: 3, backgroundColor: "#7047FF" },
   num: { color: "white", fontWeight: "900", fontSize: 19, textAlign: "center" },
   primary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, backgroundColor: "#7047FF", padding: 14, borderRadius: 13, marginTop: 14 },
   primaryText: { color: "white", fontWeight: "800", fontSize: 14 },
