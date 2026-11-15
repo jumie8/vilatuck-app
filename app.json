@@ -18,6 +18,14 @@
       }
     },
     "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow VILATUCK to use your camera to record videos.",
+          "microphonePermission": "Allow VILATUCK to record audio with your videos.",
+          "recordAudioAndroid": true
+        }
+      ],
       "expo-router"
     ],
     "experiments": {
