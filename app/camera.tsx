@@ -94,7 +94,7 @@ export default function CameraScreen() {
   }
 
   return <View style={styles.screen}>
-    <CameraView ref={camera} style={StyleSheet.absoluteFill} facing={facing} mode="video" />
+    <CameraView ref={camera} style={StyleSheet.absoluteFill} facing={facing} mode="video" onRecordingProgress={({ duration }) => setRecordingSeconds(Math.floor(duration))} />
     <View style={styles.top}>
       <Pressable style={styles.round} onPress={() => router.back()}><Ionicons name="close" size={30} color="white" /></Pressable>
       <Pressable style={styles.sound} onPress={() => Alert.alert("Sounds", "You can add audio after recording. Licensed music selection is coming in a later update.")}>
