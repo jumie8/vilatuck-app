@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert, Share, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,13 +26,22 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, onLike, onSave, onComment, onFollow, router }: {
-  item: FeedVideo; liked: boolean; saved: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; onLike: () => void; onSave: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
+function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, active, onLike, onSave, onComment, onFollow, router }: {
+  item: FeedVideo; liked: boolean; saved: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; active: boolean; onLike: () => void; onSave: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
   });
   const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (active) {
+      player.play();
+      setPlaying(true);
+    } else {
+      player.pause();
+      setPlaying(false);
+    }
+  }, [active, player]);
   const creator = item.profile?.username ? `@${item.profile.username}` : item.profile?.display_name || "VILATUCK creator";
 
   function togglePlayback() {
@@ -92,6 +101,12 @@ export default function HomeScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 });
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: FeedVideo; isViewable: boolean }> }) => {
+    const visible = viewableItems.find(entry => entry.isViewable);
+    setActiveVideoId(visible?.item.id || null);
+  });
 
   const loadFeed = useCallback(async () => {
     try {
@@ -108,6 +123,7 @@ export default function HomeScreen() {
       if (tab === "Following") {
         if (!user) {
           setVideos([]);
+          setActiveVideoId(null);
           setLoading(false);
           return;
         }
@@ -117,6 +133,7 @@ export default function HomeScreen() {
         const ids = (followed || []).map((row: { following_id: string }) => row.following_id);
         if (ids.length === 0) {
           setVideos([]);
+          setActiveVideoId(null);
           setLikedIds([]);
           setLikeCounts({});
           return;
@@ -129,6 +146,7 @@ export default function HomeScreen() {
       const rows = (data || []) as VideoRow[];
       if (rows.length === 0) {
         setVideos([]);
+        setActiveVideoId(null);
         setLikedIds([]);
         setLikeCounts({});
         return;
@@ -158,6 +176,7 @@ export default function HomeScreen() {
         if (user && like.user_id === user.id) mine.push(like.video_id);
       }
       setVideos(rows.map(row => ({ ...row, profile: profiles.get(row.user_id) })));
+      setActiveVideoId(rows[0]?.id || null);
       setLikeCounts(counts);
       setLikedIds(mine);
     } catch (error) {
@@ -273,7 +292,7 @@ export default function HomeScreen() {
           data={videos}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <VideoCard item={item} liked={likedIds.includes(item.id)} saved={savedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0}
+            <VideoCard item={item} liked={likedIds.includes(item.id)} saved={savedIds.includes(item.id)} likeCount={likeCounts[item.id] || 0} active={activeVideoId === item.id}
               isFollowing={followingIds.includes(item.user_id)}
               canFollow={!!currentUserId && item.user_id !== currentUserId}
               onFollow={() => toggleFollow(item.user_id)}
@@ -287,6 +306,12 @@ export default function HomeScreen() {
           pagingEnabled
           decelerationRate="fast"
           snapToAlignment="start"
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={viewabilityConfig.current}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          removeClippedSubviews
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={PURPLE} />}
         />
       )}
