@@ -258,24 +258,15 @@ export default function HomeScreen() {
 
   return (
     <View style={s.screen}>
-      <View style={s.header}>
-        <Text style={s.logo}>VILA<Text style={{ color: PURPLE }}>TUCK</Text></Text>
-        <View style={s.headerActions}>
-          <Pressable onPress={() => router.push("/live")} style={s.iconBtn}><Ionicons name="radio-outline" size={23} color="white" /></Pressable>
-          <Pressable onPress={() => router.push("/notifications")} style={s.iconBtn}><Ionicons name="notifications-outline" size={23} color="white" /></Pressable>
-          <Pressable onPress={() => router.push("/messages")} style={s.iconBtn}><Ionicons name="chatbubble-ellipses-outline" size={23} color="white" /></Pressable>
-          <Pressable onPress={() => router.push("/saved")} style={s.iconBtn}><Ionicons name="bookmark-outline" size={23} color="white" /></Pressable>
-          <Pressable onPress={() => router.push("/wallet")} style={s.iconBtn}><Ionicons name="wallet-outline" size={23} color="white" /></Pressable>
-          <Pressable onPress={() => router.push("/profile")} style={s.avatar}><Ionicons name="person" size={18} color="white" /></Pressable>
-        </View>
-      </View>
-      <View style={s.tabs}>
-        {["Following", "For You", "Trending"].map(t => (
+      <View style={s.topNav}>
+        <Pressable onPress={() => router.push("/live")}><Text style={s.topNavText}>LIVE</Text></Pressable>
+        {["Following", "For You"].map(t => (
           <Pressable key={t} onPress={() => { setLoading(true); setTab(t); }}>
             <Text style={[s.tab, tab === t && s.activeTab]}>{t}</Text>
             {tab === t && <View style={s.underline} />}
           </Pressable>
         ))}
+        <Pressable onPress={() => router.push("/search")} style={s.searchButton}><Ionicons name="search" size={23} color="white" /></Pressable>
       </View>
       {loading ? (
         <View style={s.center}><ActivityIndicator size="large" color={PURPLE} /><Text style={s.emptyText}>Loading VILATUCK videos...</Text></View>
@@ -317,9 +308,9 @@ export default function HomeScreen() {
       )}
       <View style={s.bottom}>
         <Pressable style={s.navItem}><Ionicons name="home" size={23} color={PURPLE} /><Text style={[s.navText, { color: PURPLE }]}>Home</Text></Pressable>
-        <Pressable style={s.navItem} onPress={() => router.push("/live")}><Ionicons name="radio-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Live</Text></Pressable>
+        <Pressable style={s.navItem} onPress={() => router.push("/friends")}><Ionicons name="people-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Friends</Text></Pressable>
         <Pressable style={s.createBtn} onPress={() => router.push("/camera")}><Ionicons name="add" size={28} color="white" /></Pressable>
-        <Pressable style={s.navItem} onPress={() => router.push("/wallet")}><Ionicons name="wallet-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Wallet</Text></Pressable>
+        <Pressable style={s.navItem} onPress={() => router.push("/messages")}><Ionicons name="mail-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Inbox</Text></Pressable>
         <Pressable style={s.navItem} onPress={() => router.push("/profile")}><Ionicons name="person-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Profile</Text></Pressable>
       </View>
     </View>
@@ -328,7 +319,9 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#09090F", paddingTop: 48 },
-  header: { height: 54, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topNav: { height: 54, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topNavText: { color: "#B8B2C5", fontSize: 13, fontWeight: "800" },
+  searchButton: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
   logo: { fontSize: 23, fontWeight: "900", color: "white", letterSpacing: 1 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 13 },
   iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#1C1A28", alignItems: "center", justifyContent: "center" },
