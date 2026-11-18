@@ -179,7 +179,7 @@ export default function ProfileScreen() {
       <View><Text style={s.num}>{followers}</Text><Text style={s.muted}>Followers</Text></View>
       <View><Text style={s.num}>{likes}</Text><Text style={s.muted}>Likes</Text></View>
     </View>
-    <Pressable style={s.outlineButton} onPress={() => setEditing(!editing)}><Ionicons name="create-outline" size={18} color="white" /><Text style={s.outlineText}>{editing ? "Cancel editing" : "Edit profile"}</Text></Pressable>
+    <Pressable style={s.outlineButton} onPress={() => setEditing(!editing)}><Ionicons name="create-outline" size={18} color="white" /><Text style={s.outlineText}>{editing ? "Cancel editing" : "Edit profile"}</Text></Pressable>\n    {userEmail?.toLowerCase() === "chidestking@gmail.com" ? <Pressable style={[s.outlineButton, { marginTop: 12, borderColor: "#8F75FF" }]} onPress={() => router.push("/admin-verification")}><Ionicons name="shield-checkmark" size={18} color="#B49CFF" /><Text style={s.outlineText}>Admin: review verification requests</Text></Pressable> : null}
     {editing ? <View style={s.editCard}>
       <Text style={s.fieldLabel}>Display name</Text>
       <TextInput value={displayName} onChangeText={setDisplayName} placeholder="Your name" placeholderTextColor="#777" style={s.input} maxLength={50} />
