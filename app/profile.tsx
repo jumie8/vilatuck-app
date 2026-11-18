@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);\n  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);\n  const [requestingVerification, setRequestingVerification] = useState(false);
 
   const loadProfile = useCallback(async () => {
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
     ]);
     if (profileResult.error) console.warn("Profile load:", profileResult.error.message);
     if (videoResult.error) console.warn("Videos load:", videoResult.error.message);
-    const p = profileResult.data as Profile | null;
+    const p = profileResult.data as Profile | null;\n    const { data: verificationRequest } = await supabase.from("verification_requests").select("status").eq("user_id", id).maybeSingle();\n    setVerificationStatus(verificationRequest?.status || null);
     setProfile(p);
     setDisplayName(p?.display_name || "");
     setUsername(p?.username || "");
@@ -115,7 +115,7 @@ export default function ProfileScreen() {
     Alert.alert("Profile updated", "Your changes have been saved.");
   };
 
-  const signOut = async () => {
+  const requestVerification = async () => {\n    if (!userId) return;\n    setRequestingVerification(true);\n    const { error } = await supabase.from("verification_requests").upsert({ user_id: userId, status: "pending", message: "Please review my account for VILATUCK verification." }, { onConflict: "user_id" });\n    setRequestingVerification(false);\n    if (error) Alert.alert("Request failed", error.message);\n    else { setVerificationStatus("pending"); Alert.alert("Request submitted", "Your verification request has been sent to the VILATUCK administrator."); }\n  };\n\n  const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) Alert.alert("Sign out failed", error.message);
     else {
@@ -186,7 +186,7 @@ export default function ProfileScreen() {
       <View style={s.views}><Ionicons name="play" size={11} color="white" /><Text style={s.viewText}>{video.views_count || 0}</Text></View>
       {video.caption ? <Text numberOfLines={2} style={s.caption}>{video.caption}</Text> : null}
     </Pressable>)}</View> : <View style={s.empty}><Ionicons name="videocam-outline" size={30} color="#A88FFF" /><Text style={s.emptyText}>{profileTab === "posts" ? "You haven’t uploaded any videos yet." : "Nothing to show here yet."}</Text><Pressable onPress={() => router.push("/upload")}><Text style={s.uploadLink}>Upload your first video</Text></Pressable></View>}
-    <View style={s.infoCard}><Ionicons name="shield-checkmark-outline" size={22} color="#A88FFF" /><View style={{ flex: 1 }}><Text style={s.item}>Account verification</Text><Text style={s.muted}>Verified badges are assigned by authorized platform administrators.</Text></View></View>
+    <View style={s.infoCard}><Ionicons name="shield-checkmark-outline" size={22} color="#A88FFF" /><View style={{ flex: 1 }}><Text style={s.item}>Account verification</Text><Text style={s.muted}>{profile?.is_verified ? "Your account is officially verified." : verificationStatus === "pending" ? "Your request is waiting for administrator review." : verificationStatus === "rejected" ? "Your previous request was not approved. You can submit another request." : "Request an official blue badge. Only the VILATUCK administrator can approve it."}</Text>{!profile?.is_verified && verificationStatus !== "pending" ? <Pressable style={[s.primary, { marginTop: 12 }]} disabled={requestingVerification} onPress={requestVerification}>{requestingVerification ? <ActivityIndicator color="white" /> : <Text style={s.primaryText}>Request verification</Text>}</Pressable> : null}</View></View>\n    {userId && (await false) ? null : null}
   </ScrollView>;
 }
 
