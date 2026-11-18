@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert, Share, Dimensions } from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert, Share, Dimensions, Modal, Linking } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -26,8 +27,8 @@ type ProfileRow = {
 };
 type FeedVideo = VideoRow & { profile?: ProfileRow };
 
-function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, active, onLike, onSave, onComment, onFollow, router }: {
-  item: FeedVideo; liked: boolean; saved: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; active: boolean; onLike: () => void; onSave: () => void; onComment: () => void; onFollow: () => void; router: ReturnType<typeof useRouter>;
+function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, active, onLike, onSave, onComment, onFollow, onShare, router }: {
+  item: FeedVideo; liked: boolean; saved: boolean; likeCount: number; isFollowing: boolean; canFollow: boolean; active: boolean; onLike: () => void; onSave: () => void; onComment: () => void; onFollow: () => void; onShare: () => void; router: ReturnType<typeof useRouter>;
 }) {
   const player = useVideoPlayer(item.video_url, (instance) => {
     instance.loop = true;
@@ -102,6 +103,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [shareVideo, setShareVideo] = useState<FeedVideo | null>(null);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: FeedVideo; isViewable: boolean }> }) => {
     const visible = viewableItems.find(entry => entry.isViewable);
@@ -251,6 +253,27 @@ export default function HomeScreen() {
     }
   }
 
+  const shareMessage = shareVideo ? `${shareVideo.caption || "Watch this video on VILATUCK"}\\n\\nOpen in VILATUCK: vilatuck://video/${shareVideo.id}\\nWatch video: ${shareVideo.video_url}` : "";
+  async function copyVideoLink() {
+    if (!shareVideo) return;
+    await Clipboard.setStringAsync(`https://vilatuck.app/video/${shareVideo.id}`);
+    setShareVideo(null);
+    Alert.alert("Link copied", "The VILATUCK video link is ready to paste.");
+  }
+  async function shareToApp(app: "whatsapp" | "telegram") {
+    if (!shareVideo) return;
+    const link = `https://vilatuck.app/video/${shareVideo.id}`;
+    const text = encodeURIComponent(`${shareVideo.caption || "Watch this video on VILATUCK"}\\n${link}`);
+    const url = app === "whatsapp" ? `whatsapp://send?text=${text}` : `tg://msg_url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareVideo.caption || "Watch this video on VILATUCK")}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+      else if (app === "telegram") await Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareVideo.caption || "Watch this video on VILATUCK")}`);
+      else await Linking.openURL(`https://wa.me/?text=${text}`);
+      setShareVideo(null);
+    } catch { Alert.alert("Unable to open app", "Please use Copy link or try again."); }
+  }
+
   function refresh() {
     setRefreshing(true);
     loadFeed();
@@ -355,5 +378,15 @@ const s = StyleSheet.create({
   bottom: { height: 72, borderTopWidth: 1, borderTopColor: "#252230", backgroundColor: "#0D0B14", flexDirection: "row", alignItems: "center", justifyContent: "space-around", paddingBottom: 8 },
   navItem: { alignItems: "center", gap: 3, minWidth: 48 },
   navText: { fontSize: 10, color: "#A6A3B2" },
-  createBtn: { width: 44, height: 38, borderRadius: 12, backgroundColor: PURPLE, alignItems: "center", justifyContent: "center" }
+  createBtn: { width: 44, height: 38, borderRadius: 12, backgroundColor: PURPLE, alignItems: "center", justifyContent: "center" },
+  shareOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.62)", justifyContent: "flex-end" },
+  shareSheet: { backgroundColor: "#171422", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 38 },
+  shareHandle: { width: 42, height: 4, borderRadius: 3, backgroundColor: "#625D70", alignSelf: "center", marginBottom: 16 },
+  shareHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  shareTitle: { color: "white", fontSize: 17, fontWeight: "800" },
+  shareCaption: { color: "#AAA5B7", fontSize: 13, marginTop: 12 },
+  shareOptions: { flexDirection: "row", justifyContent: "space-between", marginTop: 24 },
+  shareOption: { alignItems: "center", gap: 8, minWidth: 65 },
+  shareIcon: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
+  shareLabel: { color: "white", fontSize: 11, fontWeight: "600" }
 });
