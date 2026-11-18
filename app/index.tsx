@@ -34,6 +34,26 @@ function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, acti
     instance.loop = true;
   });
   const [playing, setPlaying] = useState(false);
+  const watchRecorded = useRef(false);
+  useEffect(() => {
+    if (!active) { watchRecorded.current = false; return; }
+    let secondsPlayed = 0;
+    const interval = setInterval(async () => {
+      if (!player.playing || watchRecorded.current) return;
+      secondsPlayed += 1;
+      if (secondsPlayed >= 3) {
+        watchRecorded.current = true;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase.from("video_watch_events").insert({
+            user_id: user.id, video_id: item.id, watched_ms: 3000, completed: false,
+          });
+          if (error) console.warn("Video watch tracking:", error.message);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [active, item.id, player]);
   useEffect(() => {
     if (active) {
       player.play();
