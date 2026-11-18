@@ -32,13 +32,17 @@ export default function WalletScreen() {
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
  const [buying,setBuying]=useState<string|null>(null);
- const [error,setError]=useState("");\n const [market,setMarket]=useState<Market>(MARKETS[0]);\n const [marketOpen,setMarketOpen]=useState(false);
+ const [error,setError]=useState("");
+ const [market,setMarket]=useState<Market>(MARKETS[0]);
+ const [marketOpen,setMarketOpen]=useState(false);
 
  const load=useCallback(async()=>{
   setError("");
   const {data:{user},error:authError}=await supabase.auth.getUser();
   if(authError||!user){setLoading(false);setError("Please sign in to view your wallet.");return;}
-  const profileRes=await supabase.from("profiles").select("country_code,currency_code").eq("id",user.id).maybeSingle();\n  if(profileRes.data){const saved=MARKETS.find(m=>m.code===profileRes.data.country_code&&m.currency===profileRes.data.currency_code);if(saved)setMarket(saved);}\n  const [walletRes,packageRes,purchaseRes]=await Promise.all([
+  const profileRes=await supabase.from("profiles").select("country_code,currency_code").eq("id",user.id).maybeSingle();
+  if(profileRes.data){const saved=MARKETS.find(m=>m.code===profileRes.data.country_code&&m.currency===profileRes.data.currency_code);if(saved)setMarket(saved);}
+  const [walletRes,packageRes,purchaseRes]=await Promise.all([
    supabase.from("coin_wallets").select("coins_balance,diamonds_balance").eq("user_id",user.id).maybeSingle(),
    supabase.from("coin_packages").select("id,title,amount_ngn,coins,sort_order").eq("is_active",true).order("sort_order"),
    supabase.from("coin_purchases").select("id,tx_ref,amount_ngn,coins,status,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(8)
@@ -53,7 +57,17 @@ export default function WalletScreen() {
  useEffect(()=>{load();},[load]);
  const refresh=async()=>{setRefreshing(true);await load();setRefreshing(false);};
 
+ const chooseMarket=async(next:Market)=>{
+  setMarket(next);setMarketOpen(false);
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)return;
+  const {error:saveError}=await supabase.from("profiles").update({country_code:next.code,currency_code:next.currency}).eq("id",user.id);
+  if(saveError){setError("Could not save your country. Please try again.");return;}
+  if(next.code!=="NG") Alert.alert("Local payments coming soon","We saved "+next.name+". Coin purchases in "+next.currency+" will become available after international checkout is approved.");
+ };
+
  const buy=async(pkg:CoinPackage)=>{
+  if(market.code!=="NG"){Alert.alert("Not available yet","Local-currency payments for this country are not enabled yet. Your country selection has been saved.");return;}
   setBuying(pkg.id);setError("");
   try{
    const {data,error:invokeError}=await supabase.functions.invoke("create-coin-checkout",{body:{package_id:pkg.id}});
@@ -84,7 +98,7 @@ export default function WalletScreen() {
     <Text style={s.cardFoot}>Your coin balance updates after a confirmed payment.</Text>
    </View>
    <View style={s.sectionHead}><Text style={s.sectionTitle}>Buy coins</Text><Text style={s.sectionHint}>Secure checkout by Flutterwave</Text></View>
-   {packages.map((pkg)=>(
+   {market.code!=="NG"?<View style={s.comingSoon}><Text style={s.comingTitle}>Local-currency payments coming soon</Text><Text style={s.comingText}>Your country is saved. Coin purchases will be enabled here after international payment approval.</Text></View>:packages.map((pkg)=>(
     <View key={pkg.id} style={s.package}>
      <View style={{flex:1}}><Text style={s.packageName}>{pkg.title}</Text><Text style={s.packageCoins}>🪙 {pkg.coins.toLocaleString()} coins</Text></View>
      <Pressable disabled={!!buying} onPress={()=>buy(pkg)} style={[s.buyButton, buying===pkg.id&&{opacity:0.6}]}>
