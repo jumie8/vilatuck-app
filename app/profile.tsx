@@ -158,7 +158,7 @@ export default function ProfileScreen() {
     <View style={s.topRow}>
       <Pressable onPress={() => router.back()}><Ionicons name="arrow-back" size={25} color="white" /></Pressable>
       <Text style={s.topTitle}>Profile</Text>
-      <Pressable onPress={signOut}><Ionicons name="log-out-outline" size={24} color="#FF8B9A" /></Pressable>
+      <View style={{ width: 25 }} />
     </View>
     <View style={s.coverBanner}>
       <View style={s.coverPattern}><Text style={s.coverBrand}>VILATUCK</Text></View>
@@ -206,6 +206,7 @@ export default function ProfileScreen() {
       {video.caption ? <Text numberOfLines={2} style={s.caption}>{video.caption}</Text> : null}
     </Pressable>)}</View> : <View style={s.empty}><Ionicons name="videocam-outline" size={30} color="#A88FFF" /><Text style={s.emptyText}>{profileTab === "posts" ? "You haven’t uploaded any videos yet." : "Nothing to show here yet."}</Text><Pressable onPress={() => router.push("/upload")}><Text style={s.uploadLink}>Upload your first video</Text></Pressable></View>}
     {userEmail?.toLowerCase() === "chidestking@gmail.com" ? <Pressable style={[s.outlineButton, { marginTop: 18 }]} onPress={() => router.push("/admin-verification")}><Ionicons name="shield-checkmark" size={18} color="#B49CFF" /><Text style={s.outlineText}>Admin: review verification requests</Text></Pressable> : null}
+    <Pressable style={[s.outlineButton, { marginTop: 22, borderColor: "#6A3945" }]} onPress={signOut}><Ionicons name="log-out-outline" size={18} color="#FF8B9A" /><Text style={[s.outlineText, { color: "#FF8B9A" }]}>Log out</Text></Pressable>
     <View style={s.infoCard}><Ionicons name="shield-checkmark-outline" size={22} color="#A88FFF" /><View style={{ flex: 1 }}><Text style={s.item}>Account verification</Text><Text style={s.muted}>{profile?.is_verified ? "Your account is officially verified." : verificationStatus === "pending" ? "Your request is waiting for administrator review." : verificationStatus === "rejected" ? "Your previous request was not approved. You can submit another request." : "Request an official blue badge. Only the VILATUCK administrator can approve it."}</Text>{!profile?.is_verified && verificationStatus === null ? <Pressable style={[s.primary, { marginTop: 12 }]} disabled={requestingVerification} onPress={requestVerification}>{requestingVerification ? <ActivityIndicator color="white" /> : <Text style={s.primaryText}>Request verification</Text>}</Pressable> : null}</View></View>
 </ScrollView>;
 }
