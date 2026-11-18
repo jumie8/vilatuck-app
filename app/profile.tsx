@@ -129,14 +129,19 @@ export default function ProfileScreen() {
     else { setVerificationStatus("pending"); Alert.alert("Request submitted", "Your verification request has been sent to the VILATUCK administrator."); }
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) Alert.alert("Sign out failed", error.message);
-    else {
-      setUserId(null);
-      setProfile(null);
-      router.replace("/");
-    }
+  const signOut = () => {
+    Alert.alert("Log out of VILATUCK?", "Are you sure you want to log out of your account?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) Alert.alert("Sign out failed", error.message);
+        else {
+          setUserId(null);
+          setProfile(null);
+          router.replace("/");
+        }
+      } },
+    ]);
   };
 
   if (loading) return <View style={s.center}><ActivityIndicator color="#A88FFF" size="large" /><Text style={s.muted}>Loading your profile…</Text></View>;
