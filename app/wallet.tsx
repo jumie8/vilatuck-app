@@ -33,7 +33,7 @@ export default function WalletScreen() {
  const [refreshing,setRefreshing]=useState(false);
  const [buying,setBuying]=useState<string|null>(null);
  const [error,setError]=useState("");
- const [market,setMarket]=useState<Market>(MARKETS[0]);
+ const [market,setMarket]=useState<Market>(MARKETS.find(m=>m.code==="US")??MARKETS[0]);
  const [marketOpen,setMarketOpen]=useState(false);
 
  const load=useCallback(async()=>{
