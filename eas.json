@@ -17,12 +17,14 @@
       "android": {
         "buildType": "apk"
       },
-      "node": "22.16.0"
+      "node": "22.16.0",
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "android": {},
-      "node": "22.16.0"
+      "node": "22.16.0",
+      "channel": "production"
     }
   }
 }
