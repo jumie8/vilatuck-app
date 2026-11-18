@@ -1,11 +1,28 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 
 type CoinPackage = { id: string; title: string; amount_ngn: number; coins: number; sort_order: number };
 type Purchase = { id: string; tx_ref: string; amount_ngn: number; coins: number; status: string; created_at: string };
+type Market = { code: string; name: string; currency: string; symbol: string };
+const MARKETS: Market[] = [
+ {code:"NG",name:"Nigeria",currency:"NGN",symbol:"₦"},
+ {code:"US",name:"United States",currency:"USD",symbol:"$"},
+ {code:"GB",name:"United Kingdom",currency:"GBP",symbol:"£"},
+ {code:"GH",name:"Ghana",currency:"GHS",symbol:"GH₵"},
+ {code:"ZA",name:"South Africa",currency:"ZAR",symbol:"R"},
+ {code:"KE",name:"Kenya",currency:"KES",symbol:"KSh"},
+ {code:"UG",name:"Uganda",currency:"UGX",symbol:"USh"},
+ {code:"TZ",name:"Tanzania",currency:"TZS",symbol:"TSh"},
+ {code:"RW",name:"Rwanda",currency:"RWF",symbol:"RF"},
+ {code:"CM",name:"Cameroon",currency:"XAF",symbol:"FCFA"},
+ {code:"CI",name:"Côte d’Ivoire",currency:"XOF",symbol:"CFA"},
+ {code:"DE",name:"Germany",currency:"EUR",symbol:"€"},
+ {code:"FR",name:"France",currency:"EUR",symbol:"€"},
+ {code:"CA",name:"Canada",currency:"CAD",symbol:"C$"},
+];
 
 export default function WalletScreen() {
  const router=useRouter();
@@ -15,13 +32,13 @@ export default function WalletScreen() {
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
  const [buying,setBuying]=useState<string|null>(null);
- const [error,setError]=useState("");
+ const [error,setError]=useState("");\n const [market,setMarket]=useState<Market>(MARKETS[0]);\n const [marketOpen,setMarketOpen]=useState(false);
 
  const load=useCallback(async()=>{
   setError("");
   const {data:{user},error:authError}=await supabase.auth.getUser();
   if(authError||!user){setLoading(false);setError("Please sign in to view your wallet.");return;}
-  const [walletRes,packageRes,purchaseRes]=await Promise.all([
+  const profileRes=await supabase.from("profiles").select("country_code,currency_code").eq("id",user.id).maybeSingle();\n  if(profileRes.data){const saved=MARKETS.find(m=>m.code===profileRes.data.country_code&&m.currency===profileRes.data.currency_code);if(saved)setMarket(saved);}\n  const [walletRes,packageRes,purchaseRes]=await Promise.all([
    supabase.from("coin_wallets").select("coins_balance,diamonds_balance").eq("user_id",user.id).maybeSingle(),
    supabase.from("coin_packages").select("id,title,amount_ngn,coins,sort_order").eq("is_active",true).order("sort_order"),
    supabase.from("coin_purchases").select("id,tx_ref,amount_ngn,coins,status,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(8)
@@ -53,9 +70,15 @@ export default function WalletScreen() {
  if(loading) return <View style={s.loading}><ActivityIndicator color="#A88FFF" size="large"/><Text style={s.muted}>Loading your wallet…</Text></View>;
  return <View style={s.page}>
   <View style={s.top}><Pressable onPress={()=>router.back()}><Ionicons name="arrow-back" size={26} color="white"/></Pressable><Text style={s.topTitle}>VILATUCK WALLET</Text><Pressable onPress={refresh}><Ionicons name="refresh" size={22} color="#CFC3FF"/></Pressable></View>
+  <Modal visible={marketOpen} transparent animationType="slide" onRequestClose={()=>setMarketOpen(false)}>
+   <View style={s.modalShade}><View style={s.modalCard}><View style={s.modalHead}><Text style={s.modalTitle}>Choose your country</Text><Pressable onPress={()=>setMarketOpen(false)}><Ionicons name="close" size={24} color="white"/></Pressable></View>
+    <ScrollView style={{maxHeight:440}}>{MARKETS.map(item=><Pressable key={item.code} style={s.marketOption} onPress={()=>chooseMarket(item)}><View><Text style={s.marketName}>{item.name}</Text><Text style={s.marketCurrency}>{item.currency} · {item.symbol}</Text></View><Text style={s.marketStatus}>{item.code==="NG"?"Available":"Coming soon"}</Text></Pressable>)}</ScrollView>
+   </View></View>
+  </Modal>
   <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#A88FFF"/>}>
    <Text style={s.title}>Your coins</Text>
    <Text style={s.sub}>Buy coins to send gifts to creators during live streams.</Text>
+   <Pressable style={s.countryButton} onPress={()=>setMarketOpen(true)}><View><Text style={s.countryLabel}>YOUR COUNTRY & CURRENCY</Text><Text style={s.countryValue}>{market.name} · {market.currency} ({market.symbol})</Text></View><Ionicons name="chevron-down" size={20} color="#CFC3FF"/></Pressable>
    <View style={s.card}>
     <View style={s.balanceRow}><View><Text style={s.label}>AVAILABLE COINS</Text><Text style={s.amount}>{balance.toLocaleString()}</Text></View><View style={s.coin}><Text style={{fontSize:27}}>🪙</Text></View></View>
     <Text style={s.cardFoot}>Your coin balance updates after a confirmed payment.</Text>
@@ -81,6 +104,20 @@ export default function WalletScreen() {
 
 const s=StyleSheet.create({
  page:{flex:1,backgroundColor:"#09090F",paddingTop:55,paddingHorizontal:20},
+ modalShade:{flex:1,backgroundColor:"rgba(0,0,0,0.72)",justifyContent:"flex-end"},
+ modalCard:{backgroundColor:"#17151F",borderTopLeftRadius:22,borderTopRightRadius:22,padding:20,paddingBottom:34},
+ modalHead:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:12},
+ modalTitle:{color:"white",fontSize:19,fontWeight:"900"},
+ marketOption:{paddingVertical:15,borderBottomWidth:1,borderBottomColor:"#302A3D",flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
+ marketName:{color:"white",fontSize:15,fontWeight:"700"},
+ marketCurrency:{color:"#AAA5B7",fontSize:12,marginTop:4},
+ marketStatus:{color:"#B9A8F4",fontSize:11,fontWeight:"800"},
+ countryButton:{marginTop:18,backgroundColor:"#17151F",borderRadius:13,padding:15,flexDirection:"row",justifyContent:"space-between",alignItems:"center",borderWidth:1,borderColor:"#393149"},
+ countryLabel:{color:"#AAA5B7",fontSize:10,fontWeight:"800",letterSpacing:1},
+ countryValue:{color:"white",fontSize:14,fontWeight:"800",marginTop:5},
+ comingSoon:{backgroundColor:"#211D2D",borderRadius:14,padding:16,borderWidth:1,borderColor:"#4D3A82"},
+ comingTitle:{color:"white",fontWeight:"900",fontSize:15},
+ comingText:{color:"#CFC3FF",fontSize:12,lineHeight:18,marginTop:7},
  loading:{flex:1,backgroundColor:"#09090F",alignItems:"center",justifyContent:"center",gap:14},
  top:{flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
  topTitle:{color:"white",fontWeight:"900",letterSpacing:1,fontSize:13},
