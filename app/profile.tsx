@@ -47,6 +47,7 @@ export default function ProfileScreen() {
     }
     const id = authData.user.id;
     setUserId(id);
+    setUserEmail(authData.user.email || null);
     const [profileResult, videoResult, followerResult, followingResult] = await Promise.all([
       supabase.from("profiles").select("id,username,display_name,bio,avatar_url,is_verified").eq("id", id).maybeSingle(),
       supabase.from("videos").select("id,caption,thumbnail_url,video_url,views_count").eq("user_id", id).order("created_at", { ascending: false }),
