@@ -6,11 +6,28 @@ import { supabase } from "../lib/supabase";
 
 export default function AuthScreen() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("signup");
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function recoverPassword() {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      Alert.alert("Enter your email", "Type the email address linked to your VILATUCK account first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+      if (error) throw error;
+      Alert.alert("Check your email", "If an account exists for this address, VILATUCK has sent a password reset link.");
+    } catch (error) {
+      Alert.alert("Could not send reset link", error instanceof Error ? error.message : "Please try again.");
+    } finally { setLoading(false); }
+  }
 
   async function submit() {
     const cleanEmail = email.trim().toLowerCase();
@@ -73,7 +90,8 @@ export default function AuthScreen() {
       <Text style={s.label}>Email address</Text>
       <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#777284" style={s.input} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
       <Text style={s.label}>Password</Text>
-      <TextInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" placeholderTextColor="#777284" style={s.input} secureTextEntry autoCapitalize="none" />
+      <View style={s.passwordWrap}><TextInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" placeholderTextColor="#777284" style={[s.input, {flex:1}]} secureTextEntry={!showPassword} autoCapitalize="none" /><Pressable onPress={() => setShowPassword(v => !v)} style={s.eye}><Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={21} color="#AAA5B7" /></Pressable></View>
+      {mode === "login" ? <Pressable onPress={recoverPassword} disabled={loading} style={s.forgot}><Text style={s.forgotText}>Forgot password?</Text></Pressable> : null}
       <Pressable onPress={submit} disabled={loading} style={[s.button, loading && {opacity:0.65}]}>
         {loading ? <ActivityIndicator color="white" /> : <Text style={s.buttonText}>{mode === "signup" ? "Create account" : "Sign in"}</Text>}
       </Pressable>
@@ -98,6 +116,10 @@ const s = StyleSheet.create({
   input:{backgroundColor:"#171422",borderColor:"#302A3D",borderWidth:1,borderRadius:12,padding:15,color:"white",fontSize:14},
   button:{backgroundColor:"#7047FF",padding:16,borderRadius:13,alignItems:"center",marginTop:28,minHeight:52,justifyContent:"center"},
   buttonText:{color:"white",fontSize:15,fontWeight:"900"},
+  passwordWrap:{flexDirection:"row",alignItems:"center"},
+  eye:{position:"absolute",right:14,padding:8},
+  forgot:{alignSelf:"flex-end",paddingTop:14},
+  forgotText:{color:"#B49CFF",fontWeight:"700",fontSize:13},
   notice:{flexDirection:"row",gap:10,backgroundColor:"#211D2D",borderRadius:13,padding:14,marginTop:22},
   noticeText:{color:"#D7CFFF",fontSize:12,lineHeight:19,flex:1}
 });
