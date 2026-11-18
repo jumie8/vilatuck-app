@@ -41,7 +41,7 @@ export default function VideoDetailScreen(){
    </Pressable></Pressable>
   </Modal>
   <View style={s.info}><Text style={s.creator}>{creator}</Text>{video.caption?<Text style={s.caption}>{video.caption}</Text>:null}<Text style={s.muted}>{video.views_count||0} views</Text>
-   <View style={s.actions}><Pressable style={s.button} onPress={()=>router.push({pathname:"/comments",params:{videoId:video.id}})}><Ionicons name="chatbubble-ellipses-outline" size={20} color="white"/><Text style={s.buttonText}>Comments</Text></Pressable><Pressable style={s.button} onPress={share}><Ionicons name="share-social-outline" size={20} color="white"/><Text style={s.buttonText}>Share video</Text></Pressable></View>
+   <View style={s.actions}><Pressable style={s.button} onPress={()=>router.push({pathname:"/comments",params:{videoId:video.id}})}><Ionicons name="chatbubble-ellipses-outline" size={20} color="white"/><Text style={s.buttonText}>Comments</Text></Pressable><Pressable style={s.button} onPress={()=>setShareOpen(true)}><Ionicons name="share-social-outline" size={20} color="white"/><Text style={s.buttonText}>Share video</Text></Pressable></View>
   </View>
  </View>;
 }
