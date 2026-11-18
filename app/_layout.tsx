@@ -14,6 +14,7 @@ export default function RootLayout() {
         <Stack.Screen name="upload" />
         <Stack.Screen name="camera" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="auth" />
+        <Stack.Screen name="comments" options={{ presentation: "transparentModal", animation: "slide_from_bottom", contentStyle: { backgroundColor: "transparent" } }} />
       </Stack>
     </>
   );
