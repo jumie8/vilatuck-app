@@ -97,7 +97,7 @@ function VideoCard({ item, liked, saved, likeCount, isFollowing, canFollow, acti
             <Ionicons name="chatbubble-ellipses-outline" size={27} color="white" />
             <Text style={s.actionText}>Comment</Text>
           </Pressable>
-          <Pressable style={s.action} onPress={() => Share.share({ message: `${item.caption || "Watch this video on VILATUCK"}\n\nOpen in VILATUCK: vilatuck://video/${item.id}\nWatch video: ${item.video_url}` })}>
+          <Pressable style={s.action} onPress={onShare}>
             <Ionicons name="share-social-outline" size={27} color="white" />
             <Text style={s.actionText}>Share</Text>
           </Pressable>
@@ -303,7 +303,7 @@ export default function HomeScreen() {
     <View style={s.screen}>
       <View style={s.topNav}>
         <Pressable onPress={() => router.push("/live")}><Text style={s.topNavText}>LIVE</Text></Pressable>
-        {["Following", "For You"].map(t => (
+        {["Following", "For You", "Trending"].map(t => (
           <Pressable key={t} onPress={() => { setLoading(true); setTab(t); }}>
             <Text style={[s.tab, tab === t && s.activeTab]}>{t}</Text>
             {tab === t && <View style={s.underline} />}
@@ -333,6 +333,7 @@ export default function HomeScreen() {
               router={router}
               onLike={() => toggleLike(item.id)}
               onSave={() => toggleSave(item.id)}
+              onShare={() => setShareVideo(item)}
               onComment={() => router.push({ pathname: "/comments", params: { videoId: item.id } })}
             />
           )}
@@ -349,6 +350,40 @@ export default function HomeScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={PURPLE} />}
         />
       )}
+      <Modal visible={!!shareVideo} transparent animationType="slide" onRequestClose={() => setShareVideo(null)}>
+        <Pressable style={s.shareOverlay} onPress={() => setShareVideo(null)}>
+          <Pressable style={s.shareSheet} onPress={() => {}}>
+            <View style={s.shareHandle} />
+            <View style={s.shareHeader}>
+              <Text style={s.shareTitle}>Share video</Text>
+              <Pressable onPress={() => setShareVideo(null)}><Ionicons name="close" size={24} color="white" /></Pressable>
+            </View>
+            <Text style={s.shareCaption} numberOfLines={2}>{shareVideo?.caption || "Share this VILATUCK video with friends"}</Text>
+            <View style={s.shareOptions}>
+              <Pressable style={s.shareOption} onPress={() => shareToApp("whatsapp")}>
+                <View style={[s.shareIcon, { backgroundColor: "#1B9B57" }]}><Ionicons name="logo-whatsapp" size={27} color="white" /></View>
+                <Text style={s.shareLabel}>WhatsApp</Text>
+              </Pressable>
+              <Pressable style={s.shareOption} onPress={() => shareToApp("telegram")}>
+                <View style={[s.shareIcon, { backgroundColor: "#238BCB" }]}><Ionicons name="paper-plane" size={25} color="white" /></View>
+                <Text style={s.shareLabel}>Telegram</Text>
+              </Pressable>
+              <Pressable style={s.shareOption} onPress={copyVideoLink}>
+                <View style={[s.shareIcon, { backgroundColor: "#393348" }]}><Ionicons name="copy-outline" size={25} color="white" /></View>
+                <Text style={s.shareLabel}>Copy link</Text>
+              </Pressable>
+              <Pressable style={s.shareOption} onPress={async () => {
+                if (!shareVideo) return;
+                try { await Share.share({ message: shareMessage }); setShareVideo(null); }
+                catch { Alert.alert("Share failed", "Please try again."); }
+              }}>
+                <View style={[s.shareIcon, { backgroundColor: PURPLE }]}><Ionicons name="share-social" size={25} color="white" /></View>
+                <Text style={s.shareLabel}>More</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <View style={s.bottom}>
         <Pressable style={s.navItem}><Ionicons name="home" size={23} color={PURPLE} /><Text style={[s.navText, { color: PURPLE }]}>Home</Text></Pressable>
         <Pressable style={s.navItem} onPress={() => router.push("/friends")}><Ionicons name="people-outline" size={23} color="#A6A3B2" /><Text style={s.navText}>Friends</Text></Pressable>
