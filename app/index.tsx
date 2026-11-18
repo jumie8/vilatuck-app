@@ -256,13 +256,13 @@ export default function HomeScreen() {
   const shareMessage = shareVideo ? `${shareVideo.caption || "Watch this video on VILATUCK"}\\n\\nOpen in VILATUCK: vilatuck://video/${shareVideo.id}\\nWatch video: ${shareVideo.video_url}` : "";
   async function copyVideoLink() {
     if (!shareVideo) return;
-    await Clipboard.setStringAsync(`https://vilatuck.app/video/${shareVideo.id}`);
+    await Clipboard.setStringAsync(shareVideo.video_url);
     setShareVideo(null);
     Alert.alert("Link copied", "The VILATUCK video link is ready to paste.");
   }
   async function shareToApp(app: "whatsapp" | "telegram") {
     if (!shareVideo) return;
-    const link = `https://vilatuck.app/video/${shareVideo.id}`;
+    const link = shareVideo.video_url;
     const text = encodeURIComponent(`${shareVideo.caption || "Watch this video on VILATUCK"}\\n${link}`);
     const url = app === "whatsapp" ? `whatsapp://send?text=${text}` : `tg://msg_url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareVideo.caption || "Watch this video on VILATUCK")}`;
     try {
